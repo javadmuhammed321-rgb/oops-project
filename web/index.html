@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Local Service Booking Platform</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="navbar">
+    <a class="brand" href="index.html">🔧 LocalService</a>
+    <nav id="navLinks">
+      <a href="services.html">Services</a>
+      <a href="providers.html">Providers</a>
+      <a href="emergency.html">Emergency</a>
+      <a href="login.html">Login</a>
+      <a href="register.html">Register</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <h1>Book Local Services Easily</h1>
+      <p>Plumbing, cleaning, electrical & more — book online, pay Cash / UPI / Card.</p>
+      <a class="btn" href="services.html" style="margin-right:0.5rem">Browse Services</a>
+      <a class="btn btn-outline" href="emergency.html" style="border-color:white;color:white">🚨 Emergency Booking</a>
+    </section>
+
+    <div class="grid">
+      <div class="card">
+        <h3>👤 For Customers</h3>
+        <p>Register, browse services, book appointments, pay online, and track booking history.</p>
+        <div class="actions"><a class="btn btn-sm" href="register.html">Sign Up</a></div>
+      </div>
+      <div class="card">
+        <h3>🛠️ For Providers</h3>
+        <p>Register your business, list services, and manage incoming bookings.</p>
+        <div class="actions"><a class="btn btn-sm" href="register.html">Become a Provider</a></div>
+      </div>
+      <div class="card">
+        <h3>⚙️ Admin</h3>
+        <p>Manage users, providers, services, and bookings from the admin panel.</p>
+        <div class="actions"><a class="btn btn-sm" href="login.html">Admin Login</a></div>
+      </div>
+    </div>
+
+    <div class="card" id="demoNote">
+      <h3>How to run the full demo</h3>
+      <p>This static UI can be hosted on Vercel. For live database features (login, booking, payments), run the Java server locally:</p>
+      <pre style="background:#f8fafc;padding:0.75rem;border-radius:6px;overflow:auto;margin-top:0.5rem">javac -cp "lib/*" -d out $(find src -name "*.java")
+java -cp "out:lib/*" com.localservice.Main</pre>
+      <p style="margin-top:0.5rem;color:var(--muted);font-size:0.9rem">Then open <strong>http://localhost:8080</strong></p>
+    </div>
+  </main>
+
+  <footer class="footer">Local Service Booking Platform — College OOP Microproject</footer>
+  <script src="js/api.js"></script>
+  <script>
+    const user = getUser();
+    if (user) {
+      const nav = document.getElementById('navLinks');
+      let dash = 'customer.html';
+      if (user.role === 'ADMIN') dash = 'admin.html';
+      else if (user.role === 'PROVIDER') dash = 'provider.html';
+      nav.innerHTML = `
+        <a href="services.html">Services</a>
+        <a href="${dash}">Dashboard</a>
+        <span class="user-info">${user.name} (${user.role})</span>
+        <a href="#" onclick="logout();return false;">Logout</a>`;
+    }
+  </script>
+</body>
+</html>

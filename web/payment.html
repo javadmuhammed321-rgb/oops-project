@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Payment — LocalService</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="navbar">
+    <a class="brand" href="index.html">🔧 LocalService</a>
+    <nav><a href="customer.html">Dashboard</a></nav>
+  </header>
+  <main class="container">
+    <div class="card" style="max-width:480px;margin:0 auto">
+      <h2>Payment</h2>
+      <p style="color:var(--muted);margin-bottom:1rem">Choose Cash, UPI, or Card. (Demo — no real payment gateway)</p>
+      <div id="alert" class="hidden"></div>
+      <form id="payForm">
+        <div class="form-group">
+          <label>Booking ID</label>
+          <input id="bookingId" required readonly />
+        </div>
+        <div class="form-group">
+          <label>Payment Method</label>
+          <select id="method" required>
+            <option value="CASH">Cash on Service</option>
+            <option value="UPI">UPI</option>
+            <option value="CARD">Card</option>
+          </select>
+        </div>
+        <button class="btn btn-success btn-block" type="submit">Pay Now</button>
+      </form>
+      <div id="result" class="hidden" style="margin-top:1rem"></div>
+    </div>
+  </main>
+  <script src="js/api.js"></script>
+  <script>
+    const user = requireAuth(['CUSTOMER']);
+    if (!user) throw new Error('auth');
+    const bid = new URLSearchParams(location.search).get('bookingId') || '';
+    document.getElementById('bookingId').value = bid;
+
+    document.getElementById('payForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = await api('/api/payment', {
+        method: 'POST',
+        body: JSON.stringify({ bookingId: parseInt(bookingId.value,10), method: method.value })
+      });
+      const alert = document.getElementById('alert');
+      if (!data.success) { showAlert(alert, data.message, 'error'); return; }
+      showAlert(alert, 'Payment successful!', 'success');
+      document.getElementById('result').classList.remove('hidden');
+      document.getElementById('result').innerHTML = `
+        <div class="alert alert-success">
+          Ref: <strong>${data.payment.transactionRef}</strong><br>
+          Amount: ${formatMoney(data.payment.amount)} via ${data.payment.method}
+        </div>
+        <a class="btn" href="customer.html">Back to Dashboard</a>`;
+    });
+  </script>
+</body>
+</html>

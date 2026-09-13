@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Emergency Booking — LocalService</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="navbar">
+    <a class="brand" href="index.html">🔧 LocalService</a>
+    <nav>
+      <a href="services.html">Services</a>
+      <a href="customer.html">Dashboard</a>
+    </nav>
+  </header>
+  <main class="container">
+    <div class="emergency-banner">
+      <h3>🚨 Emergency Booking</h3>
+      <p>Priority booking for urgent plumbing / electrical issues. Emergency bookings are auto-confirmed.</p>
+    </div>
+    <div class="card" style="max-width:560px;margin:0 auto">
+      <div id="alert" class="hidden"></div>
+      <form id="emForm">
+        <div class="form-group">
+          <label>Emergency Service</label>
+          <select id="serviceId" required></select>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Date</label><input type="date" id="bookingDate" required /></div>
+          <div class="form-group"><label>Time</label><input type="time" id="bookingTime" required /></div>
+        </div>
+        <div class="form-group"><label>Emergency details</label><textarea id="notes" rows="3" required placeholder="Describe the emergency..."></textarea></div>
+        <button class="btn btn-danger btn-block" type="submit">Book Emergency Now</button>
+      </form>
+    </div>
+    <h3 style="margin:1.5rem 0 0.75rem">Emergency Services</h3>
+    <div class="grid" id="list"></div>
+  </main>
+  <script src="js/api.js"></script>
+  <script>
+    const user = getUser();
+    (async () => {
+      const data = await api('/api/services/emergency');
+      const list = document.getElementById('list');
+      const sel = document.getElementById('serviceId');
+      if (!data.success) {
+        showAlert(document.getElementById('alert'), data.message, 'error');
+        return;
+      }
+      const services = data.services || [];
+      list.innerHTML = services.map(s => `
+        <div class="card service-card">
+          <span class="badge badge-emergency">Emergency</span>
+          <h3>${s.name}</h3>
+          <p class="meta">${s.providerName} · ${s.category}</p>
+          <div class="price">${formatMoney(s.price)}</div>
+        </div>`).join('') || '<p>No emergency services listed.</p>';
+      sel.innerHTML = services.map(s =>
+        `<option value="${s.id}">${s.name} — ${formatMoney(s.price)}</option>`).join('');
+      const today = new Date().toISOString().slice(0,10);
+      bookingDate.min = today; bookingDate.value = today;
+      const now = new Date();
+      bookingTime.value = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+    })();
+
+    document.getElementById('emForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!user || user.role !== 'CUSTOMER') {
+        showAlert(document.getElementById('alert'), 'Please login as a customer first.', 'error');
+        setTimeout(() => location.href = 'login.html', 800);
+        return;
+      }
+      const data = await api('/api/bookings', {
+        method: 'POST',
+        body: JSON.stringify({
+          customerId: user.id,
+          serviceId: parseInt(serviceId.value, 10),
+          bookingDate: bookingDate.value,
+          bookingTime: bookingTime.value,
+          emergency: true,
+          notes: notes.value
+        })
+      });
+      const alert = document.getElementById('alert');
+      if (!data.success) { showAlert(alert, data.message, 'error'); return; }
+      showAlert(alert, 'Emergency booking confirmed! Proceed to payment.', 'success');
+      setTimeout(() => location.href = 'payment.html?bookingId=' + data.booking.id, 700);
+    });
+  </script>
+</body>
+</html>
