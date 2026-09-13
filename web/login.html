@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login — LocalService</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="navbar">
+    <a class="brand" href="index.html">🔧 LocalService</a>
+    <nav>
+      <a href="register.html">Register</a>
+      <a href="index.html">Home</a>
+    </nav>
+  </header>
+  <main class="container">
+    <div class="card auth-box">
+      <h2>Login</h2>
+      <div id="alert" class="hidden"></div>
+      <form id="loginForm">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="email" required placeholder="you@email.com" />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="password" required />
+        </div>
+        <button type="submit" class="btn btn-block">Login</button>
+      </form>
+      <p style="margin-top:1rem;font-size:0.9rem;color:var(--muted)">
+        Demo: admin@localservice.com / admin123<br>
+        Customer: rahul@email.com / customer123<br>
+        Provider: amit@plumbing.com / provider123
+      </p>
+    </div>
+  </main>
+  <script src="js/api.js"></script>
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const data = await api('/api/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password })
+      });
+      const alert = document.getElementById('alert');
+      if (!data.success) {
+        showAlert(alert, data.message, 'error');
+        return;
+      }
+      setUser(data.user);
+      showAlert(alert, 'Welcome! Redirecting...', 'success');
+      const role = data.user.role;
+      setTimeout(() => {
+        if (role === 'ADMIN') location.href = 'admin.html';
+        else if (role === 'PROVIDER') location.href = 'provider.html';
+        else location.href = 'customer.html';
+      }, 600);
+    });
+  </script>
+</body>
+</html>

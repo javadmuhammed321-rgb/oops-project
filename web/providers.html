@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Providers — LocalService</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="navbar">
+    <a class="brand" href="index.html">🔧 LocalService</a>
+    <nav>
+      <a href="services.html">Services</a>
+      <a href="index.html">Home</a>
+    </nav>
+  </header>
+  <main class="container">
+    <h2 style="margin-bottom:1rem">Service Providers</h2>
+    <div id="alert" class="hidden"></div>
+    <div class="grid" id="list"></div>
+  </main>
+  <script src="js/api.js"></script>
+  <script>
+    (async () => {
+      const data = await api('/api/providers');
+      const list = document.getElementById('list');
+      const alert = document.getElementById('alert');
+      if (!data.success) { showAlert(alert, data.message, 'error'); return; }
+      list.innerHTML = (data.providers || []).map(p => `
+        <div class="card">
+          <h3>${p.businessName}</h3>
+          <p class="meta">${p.description || ''}</p>
+          <p>Contact: ${p.name} · ${p.phone || ''}</p>
+          <p>⭐ Rating: ${p.rating} · ${p.available ? '✅ Available' : '❌ Unavailable'}</p>
+        </div>`).join('') || '<p>No providers.</p>';
+    })();
+  </script>
+</body>
+</html>

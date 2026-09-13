@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Services — LocalService</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="navbar">
+    <a class="brand" href="index.html">🔧 LocalService</a>
+    <nav>
+      <a href="providers.html">Providers</a>
+      <a href="emergency.html">Emergency</a>
+      <a href="customer.html">Dashboard</a>
+      <a href="index.html">Home</a>
+    </nav>
+  </header>
+  <main class="container">
+    <h2 style="margin-bottom:1rem">Available Services</h2>
+    <div class="form-group" style="max-width:240px">
+      <label>Filter by category</label>
+      <select id="category">
+        <option value="">All</option>
+        <option>Plumbing</option>
+        <option>Cleaning</option>
+        <option>Electrical</option>
+      </select>
+    </div>
+    <div id="alert" class="hidden"></div>
+    <div class="grid" id="list"></div>
+  </main>
+  <script src="js/api.js"></script>
+  <script>
+    async function load() {
+      const cat = document.getElementById('category').value;
+      const path = cat ? '/api/services?category=' + encodeURIComponent(cat) : '/api/services';
+      const data = await api(path);
+      const list = document.getElementById('list');
+      const alert = document.getElementById('alert');
+      if (!data.success) { showAlert(alert, data.message, 'error'); list.innerHTML = ''; return; }
+      alert.classList.add('hidden');
+      list.innerHTML = (data.services || []).map(s => `
+        <div class="card service-card">
+          <span class="category">${s.category}</span>
+          <h3>${s.name}</h3>
+          <p class="meta">${s.description || ''}</p>
+          <p class="meta">Provider: <strong>${s.providerName || ''}</strong> · ${s.durationMinutes} min</p>
+          <div class="price">${formatMoney(s.price)}</div>
+          <div class="actions">
+            <a class="btn btn-sm" href="booking.html?serviceId=${s.id}">Book Now</a>
+          </div>
+        </div>`).join('') || '<p>No services found.</p>';
+    }
+    document.getElementById('category').onchange = load;
+    load();
+  </script>
+</body>
+</html>
