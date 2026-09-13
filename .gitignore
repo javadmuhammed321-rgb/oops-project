@@ -1,0 +1,23 @@
+# Compiled Java
+*.class
+out/
+bin/
+build/
+
+# SQLite database (regenerated on run)
+data/*.db
+data/*.db-*
+
+# IDE / OS
+.idea/
+*.iml
+.vscode/
+.DS_Store
+*.log
+Thumbs.db
+
+# Dependencies (keep lib/*.jar documentation; ignore accidental downloads if needed)
+# lib/*.jar is committed/downloaded for the project — do not ignore if you need offline demos
+
+# Vercel
+.vercel/
