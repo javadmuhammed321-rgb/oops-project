@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Provider Dashboard — LocalService</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="navbar">
+    <a class="brand" href="index.html">🔧 LocalService</a>
+    <nav>
+      <a href="#" onclick="logout();return false;">Logout</a>
+    </nav>
+    <span class="user-info" id="who"></span>
+  </header>
+  <main class="container">
+    <h2 style="margin-bottom:0.5rem">Provider Dashboard</h2>
+    <p id="biz" style="color:var(--muted);margin-bottom:1rem"></p>
+    <div id="alert" class="hidden"></div>
+
+    <div class="card">
+      <h3>Add New Service</h3>
+      <form id="addSvc" class="form-row">
+        <div class="form-group"><label>Name</label><input id="sName" required /></div>
+        <div class="form-group"><label>Category</label>
+          <select id="sCat"><option>Plumbing</option><option>Cleaning</option><option>Electrical</option><option>Other</option></select>
+        </div>
+        <div class="form-group"><label>Price (₹)</label><input type="number" id="sPrice" min="1" step="0.01" required /></div>
+        <div class="form-group"><label>Duration (min)</label><input type="number" id="sDur" value="60" min="15" /></div>
+        <div class="form-group" style="grid-column:1/-1"><label>Description</label><input id="sDesc" /></div>
+        <button class="btn" type="submit">Add Service</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3>My Services</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Name</th><th>Category</th><th>Price</th><th>Duration</th></tr></thead>
+          <tbody id="svcRows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Incoming Bookings</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>ID</th><th>Customer</th><th>Service</th><th>Date</th><th>Time</th><th>Status</th><th>Emergency</th></tr>
+          </thead>
+          <tbody id="bookRows"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+  <script src="js/api.js"></script>
+  <script>
+    const user = requireAuth(['PROVIDER']);
+    if (!user) throw new Error('auth');
+    document.getElementById('who').textContent = user.name;
+    document.getElementById('biz').textContent = user.businessName || '';
+    const providerId = user.providerId;
+
+    async function loadServices() {
+      const data = await api('/api/provider/services/' + providerId);
+      document.getElementById('svcRows').innerHTML = (data.services || []).map(s => `
+        <tr><td>${s.id}</td><td>${s.name}</td><td>${s.category}</td>
+        <td>${formatMoney(s.price)}</td><td>${s.durationMinutes} min</td></tr>`
+      ).join('') || '<tr><td colspan="5">No services yet.</td></tr>';
+    }
+
+    async function loadBookings() {
+      const data = await api('/api/bookings/provider/' + providerId);
+      if (!data.success) {
+        showAlert(document.getElementById('alert'), data.message, 'error');
+        return;
+      }
+      document.getElementById('bookRows').innerHTML = (data.bookings || []).map(b => `
+        <tr>
+          <td>#${b.id}</td><td>${b.customerName}</td><td>${b.serviceName}</td>
+          <td>${b.bookingDate}</td><td>${b.bookingTime}</td>
+          <td><span class="badge ${badgeClass(b.status)}">${b.status}</span></td>
+          <td>${b.emergency ? '🚨 Yes' : 'No'}</td>
+        </tr>`).join('') || '<tr><td colspan="7">No bookings yet.</td></tr>';
+    }
+
+    document.getElementById('addSvc').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = await api('/api/provider/service/add', {
+        method: 'POST',
+        body: JSON.stringify({
+          providerId, name: sName.value, description: sDesc.value,
+          category: sCat.value, price: parseFloat(sPrice.value),
+          durationMinutes: parseInt(sDur.value, 10)
+        })
+      });
+      if (!data.success) { showAlert(document.getElementById('alert'), data.message, 'error'); return; }
+      showAlert(document.getElementById('alert'), 'Service added!', 'success');
+      e.target.reset(); sDur.value = 60;
+      loadServices();
+    });
+
+    loadServices();
+    loadBookings();
+  </script>
+</body>
+</html>

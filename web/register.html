@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Register — LocalService</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="navbar">
+    <a class="brand" href="index.html">🔧 LocalService</a>
+    <nav>
+      <a href="login.html">Login</a>
+      <a href="index.html">Home</a>
+    </nav>
+  </header>
+  <main class="container">
+    <div class="card auth-box" style="max-width:520px">
+      <h2>Register</h2>
+      <div class="tabs">
+        <button type="button" class="active" id="tabCustomer">Customer</button>
+        <button type="button" id="tabProvider">Provider</button>
+      </div>
+      <div id="alert" class="hidden"></div>
+
+      <form id="customerForm">
+        <div class="form-group"><label>Full Name</label><input id="cName" required /></div>
+        <div class="form-group"><label>Email</label><input type="email" id="cEmail" required /></div>
+        <div class="form-group"><label>Password</label><input type="password" id="cPassword" required minlength="4" /></div>
+        <div class="form-row">
+          <div class="form-group"><label>Phone</label><input id="cPhone" required /></div>
+          <div class="form-group"><label>Address</label><input id="cAddress" required /></div>
+        </div>
+        <button class="btn btn-block" type="submit">Register as Customer</button>
+      </form>
+
+      <form id="providerForm" class="hidden">
+        <div class="form-group"><label>Full Name</label><input id="pName" required /></div>
+        <div class="form-group"><label>Email</label><input type="email" id="pEmail" required /></div>
+        <div class="form-group"><label>Password</label><input type="password" id="pPassword" required minlength="4" /></div>
+        <div class="form-group"><label>Phone</label><input id="pPhone" required /></div>
+        <div class="form-group"><label>Business Name</label><input id="pBiz" required /></div>
+        <div class="form-group"><label>Description</label><textarea id="pDesc" rows="3"></textarea></div>
+        <button class="btn btn-block" type="submit">Register as Provider</button>
+      </form>
+    </div>
+  </main>
+  <script src="js/api.js"></script>
+  <script>
+    const tabC = document.getElementById('tabCustomer');
+    const tabP = document.getElementById('tabProvider');
+    const formC = document.getElementById('customerForm');
+    const formP = document.getElementById('providerForm');
+    tabC.onclick = () => { tabC.classList.add('active'); tabP.classList.remove('active'); formC.classList.remove('hidden'); formP.classList.add('hidden'); };
+    tabP.onclick = () => { tabP.classList.add('active'); tabC.classList.remove('active'); formP.classList.remove('hidden'); formC.classList.add('hidden'); };
+
+    formC.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = await api('/api/register/customer', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: cName.value, email: cEmail.value, password: cPassword.value,
+          phone: cPhone.value, address: cAddress.value
+        })
+      });
+      const alert = document.getElementById('alert');
+      if (!data.success) { showAlert(alert, data.message, 'error'); return; }
+      setUser(data.user);
+      showAlert(alert, 'Registered! Redirecting...', 'success');
+      setTimeout(() => location.href = 'customer.html', 600);
+    });
+
+    formP.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = await api('/api/register/provider', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: pName.value, email: pEmail.value, password: pPassword.value,
+          phone: pPhone.value, businessName: pBiz.value, description: pDesc.value
+        })
+      });
+      const alert = document.getElementById('alert');
+      if (!data.success) { showAlert(alert, data.message, 'error'); return; }
+      setUser(data.user);
+      showAlert(alert, 'Provider registered! Redirecting...', 'success');
+      setTimeout(() => location.href = 'provider.html', 600);
+    });
+  </script>
+</body>
+</html>
