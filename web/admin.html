@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin — LocalService</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="navbar">
+    <a class="brand" href="index.html">🔧 LocalService</a>
+    <nav>
+      <a href="#" onclick="logout();return false;">Logout</a>
+    </nav>
+    <span class="user-info">Admin Panel</span>
+  </header>
+  <main class="container">
+    <h2 style="margin-bottom:1rem">Admin Dashboard</h2>
+    <div class="stats" id="stats"></div>
+    <div id="alert" class="hidden"></div>
+
+    <div class="tabs" style="margin-bottom:1rem">
+      <button type="button" class="active" data-tab="users">Users</button>
+      <button type="button" data-tab="providers">Providers</button>
+      <button type="button" data-tab="bookings">Bookings</button>
+      <button type="button" data-tab="services">Services</button>
+      <button type="button" data-tab="payments">Payments</button>
+    </div>
+
+    <div class="card tab-panel" id="panel-users">
+      <h3>Users</h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Phone</th><th>Action</th></tr></thead>
+        <tbody id="usersRows"></tbody>
+      </table></div>
+    </div>
+
+    <div class="card tab-panel hidden" id="panel-providers">
+      <h3>Providers</h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>ID</th><th>Business</th><th>Contact</th><th>Rating</th><th>Available</th><th>Action</th></tr></thead>
+        <tbody id="provRows"></tbody>
+      </table></div>
+    </div>
+
+    <div class="card tab-panel hidden" id="panel-bookings">
+      <h3>Bookings</h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>ID</th><th>Customer</th><th>Service</th><th>Date</th><th>Status</th><th>Emergency</th><th>Actions</th></tr></thead>
+        <tbody id="bookRows"></tbody>
+      </table></div>
+    </div>
+
+    <div class="card tab-panel hidden" id="panel-services">
+      <h3>Services</h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>ID</th><th>Name</th><th>Provider</th><th>Category</th><th>Price</th><th>Action</th></tr></thead>
+        <tbody id="svcRows"></tbody>
+      </table></div>
+    </div>
+
+    <div class="card tab-panel hidden" id="panel-payments">
+      <h3>Payments</h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>ID</th><th>Booking</th><th>Amount</th><th>Method</th><th>Status</th><th>Ref</th></tr></thead>
+        <tbody id="payRows"></tbody>
+      </table></div>
+    </div>
+  </main>
+  <script src="js/api.js"></script>
+  <script>
+    const user = requireAuth(['ADMIN']);
+    if (!user) throw new Error('auth');
+
+    document.querySelectorAll('.tabs button').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+        document.getElementById('panel-' + btn.dataset.tab).classList.remove('hidden');
+      };
+    });
+
+    async function loadAll() {
+      const [users, providers, bookings, services, payments] = await Promise.all([
+        api('/api/admin/users'),
+        api('/api/admin/providers'),
+        api('/api/admin/bookings'),
+        api('/api/admin/services'),
+        api('/api/admin/payments')
+      ]);
+
+      if (!users.success) {
+        showAlert(document.getElementById('alert'), users.message, 'error');
+        return;
+      }
+
+      document.getElementById('stats').innerHTML = `
+        <div class="stat-card"><div class="num">${(users.users||[]).length}</div><div class="label">Users</div></div>
+        <div class="stat-card"><div class="num">${(providers.providers||[]).length}</div><div class="label">Providers</div></div>
+        <div class="stat-card"><div class="num">${(bookings.bookings||[]).length}</div><div class="label">Bookings</div></div>
+        <div class="stat-card"><div class="num">${(services.services||[]).length}</div><div class="label">Services</div></div>
+        <div class="stat-card"><div class="num">${(payments.payments||[]).length}</div><div class="label">Payments</div></div>`;
+
+      document.getElementById('usersRows').innerHTML = (users.users||[]).map(u => `
+        <tr>
+          <td>${u.id}</td><td>${u.name}</td><td>${u.email}</td><td>${u.role}</td><td>${u.phone||''}</td>
+          <td>${u.role!=='ADMIN' ? `<button class="btn btn-sm btn-danger" onclick="delUser(${u.id})">Delete</button>` : '—'}</td>
+        </tr>`).join('');
+
+      document.getElementById('provRows').innerHTML = (providers.providers||[]).map(p => `
+        <tr>
+          <td>${p.providerId}</td><td>${p.businessName}</td><td>${p.name}</td><td>${p.rating}</td>
+          <td>${p.available ? 'Yes' : 'No'}</td>
+          <td><button class="btn btn-sm" onclick="toggleProv(${p.providerId}, ${!p.available})">${p.available?'Disable':'Enable'}</button></td>
+        </tr>`).join('');
+
+      document.getElementById('bookRows').innerHTML = (bookings.bookings||[]).map(b => `
+        <tr>
+          <td>#${b.id}</td><td>${b.customerName}</td><td>${b.serviceName}</td>
+          <td>${b.bookingDate} ${b.bookingTime}</td>
+          <td><span class="badge ${badgeClass(b.status)}">${b.status}</span></td>
+          <td>${b.emergency?'Yes':'No'}</td>
+          <td class="actions">
+            <button class="btn btn-sm btn-success" onclick="setStatus(${b.id},'CONFIRMED')">Confirm</button>
+            <button class="btn btn-sm" onclick="setStatus(${b.id},'COMPLETED')">Complete</button>
+            <button class="btn btn-sm btn-danger" onclick="setStatus(${b.id},'CANCELLED')">Cancel</button>
+          </td>
+        </tr>`).join('');
+
+      document.getElementById('svcRows').innerHTML = (services.services||[]).map(s => `
+        <tr>
+          <td>${s.id}</td><td>${s.name}</td><td>${s.providerName}</td><td>${s.category}</td>
+          <td>${formatMoney(s.price)}</td>
+          <td><button class="btn btn-sm btn-danger" onclick="delSvc(${s.id})">Delete</button></td>
+        </tr>`).join('');
+
+      document.getElementById('payRows').innerHTML = (payments.payments||[]).map(p => `
+        <tr>
+          <td>${p.id}</td><td>#${p.bookingId}</td><td>${formatMoney(p.amount)}</td>
+          <td>${p.method}</td><td>${p.status}</td><td>${p.transactionRef||''}</td>
+        </tr>`).join('') || '<tr><td colspan="6">No payments yet.</td></tr>';
+    }
+
+    async function delUser(id) {
+      if (!confirm('Delete user #' + id + '?')) return;
+      const d = await api('/api/admin/user/delete', { method:'POST', body: JSON.stringify({ id }) });
+      if (!d.success) alert(d.message); else loadAll();
+    }
+    async function toggleProv(providerId, available) {
+      const d = await api('/api/admin/provider/availability', {
+        method:'POST', body: JSON.stringify({ providerId, available })
+      });
+      if (!d.success) alert(d.message); else loadAll();
+    }
+    async function setStatus(id, status) {
+      const d = await api('/api/admin/booking/status', {
+        method:'POST', body: JSON.stringify({ id, status })
+      });
+      if (!d.success) alert(d.message); else loadAll();
+    }
+    async function delSvc(id) {
+      if (!confirm('Delete service #' + id + '?')) return;
+      const d = await api('/api/admin/service/delete', { method:'POST', body: JSON.stringify({ id }) });
+      if (!d.success) alert(d.message); else loadAll();
+    }
+
+    loadAll();
+  </script>
+</body>
+</html>
