@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Book Service — LocalService</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="navbar">
+    <a class="brand" href="index.html">🔧 LocalService</a>
+    <nav>
+      <a href="services.html">Services</a>
+      <a href="customer.html">Dashboard</a>
+    </nav>
+  </header>
+  <main class="container">
+    <div class="card" style="max-width:560px;margin:0 auto">
+      <h2>Book a Service</h2>
+      <div id="alert" class="hidden"></div>
+      <div id="serviceInfo" class="alert alert-info hidden"></div>
+      <form id="bookForm">
+        <div class="form-group">
+          <label>Service</label>
+          <select id="serviceId" required></select>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Date</label><input type="date" id="bookingDate" required /></div>
+          <div class="form-group"><label>Time</label><input type="time" id="bookingTime" required /></div>
+        </div>
+        <div class="form-group"><label>Notes (optional)</label><textarea id="notes" rows="2"></textarea></div>
+        <button class="btn btn-block" type="submit">Confirm Booking</button>
+      </form>
+    </div>
+  </main>
+  <script src="js/api.js"></script>
+  <script>
+    const user = requireAuth(['CUSTOMER']);
+    if (!user) throw new Error('auth');
+
+    const params = new URLSearchParams(location.search);
+    const preselect = params.get('serviceId');
+
+    (async () => {
+      const data = await api('/api/services');
+      const sel = document.getElementById('serviceId');
+      if (!data.success) {
+        showAlert(document.getElementById('alert'), data.message, 'error');
+        return;
+      }
+      sel.innerHTML = (data.services || []).map(s =>
+        `<option value="${s.id}" data-price="${s.price}" ${String(s.id)===preselect?'selected':''}>${s.name} — ${s.providerName} (${formatMoney(s.price)})</option>`
+      ).join('');
+      const today = new Date().toISOString().slice(0,10);
+      document.getElementById('bookingDate').min = today;
+      document.getElementById('bookingDate').value = today;
+    })();
+
+    document.getElementById('bookForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const body = {
+        customerId: user.id,
+        serviceId: parseInt(serviceId.value, 10),
+        bookingDate: bookingDate.value,
+        bookingTime: bookingTime.value,
+        emergency: false,
+        notes: notes.value
+      };
+      const data = await api('/api/bookings', { method: 'POST', body: JSON.stringify(body) });
+      const alert = document.getElementById('alert');
+      if (!data.success) { showAlert(alert, data.message, 'error'); return; }
+      showAlert(alert, 'Booking created! Proceed to payment...', 'success');
+      setTimeout(() => location.href = 'payment.html?bookingId=' + data.booking.id, 700);
+    });
+  </script>
+</body>
+</html>
